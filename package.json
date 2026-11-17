@@ -1,6 +1,6 @@
 {
 	"name": "delegated-identity",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "A wallet-delegated key and its proofs: the wallet authorizes a key for an app origin once, the key signs each request (server origin, route, time, body)",
 	"keywords": [
 		"ethereum",
@@ -31,12 +31,12 @@
 	],
 	"dependencies": {
 		"@noble/hashes": "^1.7.1",
-		"@noble/secp256k1": "^2.2.3",
-		"viem": "^2.23.13"
+		"@noble/secp256k1": "^2.2.3"
 	},
 	"devDependencies": {
 		"prettier": "^3.5.3",
 		"typescript": "^5.8.2",
+		"viem": "^2.23.13",
 		"vitest": "^3.0.9"
 	},
 	"scripts": {

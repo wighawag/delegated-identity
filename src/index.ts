@@ -11,7 +11,6 @@
 import {keccak_256} from '@noble/hashes/sha3';
 import {bytesToHex, hexToBytes} from '@noble/hashes/utils';
 import {getPublicKey, Signature, signAsync} from '@noble/secp256k1';
-import {hashMessage, recoverMessageAddress} from 'viem';
 
 export type Address = `0x${string}`;
 /** A secp256k1 public key, compressed, as 0x-prefixed lowercase hex. */
@@ -48,6 +47,46 @@ export function originPublicKeyPublicationMessage(orig: string, publicKey: `0x${
 	return `Origin: ${orig}\n\nIMPORTANT: Only sign on trusted websites.\n\nThis authorizes the following Public Key to represent your account:\n\n${publicKey}\n\nOthers can use this key to write encrypted messages to you securely.`;
 }
 
+const utf8 = new TextEncoder();
+
+/** EIP-191 (`personal_sign`): keccak256 of "\x19Ethereum Signed Message:\n" + the message's byte length + the message. */
+function hashMessage(message: string): Uint8Array {
+	const bytes = utf8.encode(message);
+	const prefix = utf8.encode(`\x19Ethereum Signed Message:\n${bytes.length}`);
+	const prefixed = new Uint8Array(prefix.length + bytes.length);
+	prefixed.set(prefix);
+	prefixed.set(bytes, prefix.length);
+	return keccak_256(prefixed);
+}
+
+/**
+ * The address (lowercase) that signed `message` with EIP-191, from a 65-byte
+ * signature (r, s, v with v 27/28 or 0/1) or a 64-byte EIP-2098 one (the
+ * parity in s's top bit). Throws on a malformed signature.
+ */
+function recoverMessageAddress(message: string, signature: `0x${string}`): Address {
+	const bytes = hexToBytes(signature.slice(2));
+	let compact: Uint8Array;
+	let recovery: number;
+	if (bytes.length === 65) {
+		const v = bytes[64];
+		recovery = v >= 27 ? v - 27 : v;
+		compact = bytes.slice(0, 64);
+	} else if (bytes.length === 64) {
+		recovery = bytes[32] >> 7;
+		compact = bytes.slice();
+		compact[32] &= 0x7f;
+	} else {
+		throw new Error(`a signature is 64 or 65 bytes, got ${bytes.length}`);
+	}
+	if (recovery !== 0 && recovery !== 1) {
+		throw new Error(`invalid recovery value`);
+	}
+	const point = Signature.fromCompact(compact).addRecoveryBit(recovery).recoverPublicKey(hashMessage(message));
+	const uncompressed = point.toRawBytes(false);
+	return `0x${bytesToHex(keccak_256(uncompressed.slice(1)).slice(12))}`;
+}
+
 function toPrivateKeyBytes(privateKey: PrivateKey): Uint8Array {
 	return typeof privateKey === 'string' ? hexToBytes(privateKey.slice(2)) : privateKey;
 }
@@ -68,8 +107,7 @@ export async function recoverAccount(proof: {
 	ownershipSignature: `0x${string}`;
 }): Promise<Address> {
 	const message = originPublicKeyPublicationMessage(proof.appOrigin, proof.publicKey);
-	const address = await recoverMessageAddress({message, signature: proof.ownershipSignature});
-	return address.toLowerCase() as Address;
+	return recoverMessageAddress(message, proof.ownershipSignature);
 }
 
 /** What a request signature covers: which server, which route, when, and the body. */
@@ -106,7 +144,7 @@ export async function signRequest(
 	delegatePrivateKey: PrivateKey,
 ): Promise<string> {
 	const timestamp = request.timestamp ?? Date.now();
-	const hash = hexToBytes(hashMessage(requestMessage({...request, timestamp})).slice(2));
+	const hash = hashMessage(requestMessage({...request, timestamp}));
 	const signature = await signAsync(hash, toPrivateKeyBytes(delegatePrivateKey));
 	return `${timestamp}:${signature.toCompactHex()}:${signature.recovery}`;
 }
@@ -141,7 +179,7 @@ export function recoverRequestSigner(
 		return {ok: false, reason: 'expired'};
 	}
 	try {
-		const hash = hexToBytes(hashMessage(requestMessage({...request, timestamp})).slice(2));
+		const hash = hashMessage(requestMessage({...request, timestamp}));
 		const signature = Signature.fromCompact(parts[1]).addRecoveryBit(Number(parts[2]));
 		const publicKey = `0x${signature.recoverPublicKey(hash).toHex().toLowerCase()}` as PublicKey;
 		return {ok: true, publicKey, timestamp};

@@ -68,6 +68,10 @@ const verified = await verifyRequest({
 
 `recoverRequestSigner` alone answers the delegate key that signed a request, for a server that looks the key up in its own registry instead of checking an ownership proof each time; `recoverAccount` alone answers the account an ownership proof names.
 
+## Dependencies
+
+Only `@noble/hashes` and `@noble/secp256k1`: EIP-191 hashing and recovery are done here, so an app or a library depending on this package does not pull in viem (its tests use viem as a dev dependency to cross-check both).
+
 ## License
 
 MIT

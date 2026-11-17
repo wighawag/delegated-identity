@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
+import {parseSignature, serializeCompactSignature, signatureToCompactSignature} from 'viem';
 import {utils as secpUtils} from '@noble/secp256k1';
 import {
 	delegatePublicKey,
@@ -150,6 +151,42 @@ describe('the ownership proof', () => {
 				await recoverAccount({appOrigin, publicKey: account.publicKey, ownershipSignature: account.ownershipSignature}),
 			).not.toBe(account.address);
 		}
+	});
+});
+
+// viem is a dev dependency only: it stands for the wallets and apps that sign,
+// and so cross-checks this package's own EIP-191 hashing and recovery.
+describe('EIP-191, as wallets sign it (cross-checked with viem)', () => {
+	it('recovers the account from a proof whose origin is not ASCII (the prefix counts bytes, not characters)', async () => {
+		const appOrigin = 'https://jeu-\u00e9t\u00e9.example';
+		const account = await createAccount(appOrigin);
+		expect(
+			await recoverAccount({appOrigin, publicKey: account.publicKey, ownershipSignature: account.ownershipSignature}),
+		).toBe(account.address);
+	});
+
+	it('recovers the account from a 64-byte EIP-2098 signature, and a v of 0 or 1', async () => {
+		const account = await createAccount(APP);
+		const compact = serializeCompactSignature(signatureToCompactSignature(parseSignature(account.ownershipSignature)));
+		expect(await recoverAccount({appOrigin: APP, publicKey: account.publicKey, ownershipSignature: compact})).toBe(
+			account.address,
+		);
+		const v = parseInt(account.ownershipSignature.slice(130), 16);
+		const zeroOne = `${account.ownershipSignature.slice(0, 130)}${(v - 27).toString(16).padStart(2, '0')}` as const;
+		expect(await recoverAccount({appOrigin: APP, publicKey: account.publicKey, ownershipSignature: zeroOne})).toBe(
+			account.address,
+		);
+	});
+
+	it('recovers the delegate key from an envelope a viem account signed as a personal message', async () => {
+		const privateKey = generatePrivateKey();
+		const signer = privateKeyToAccount(privateKey);
+		const signed = parseSignature(await signer.signMessage({message: requestMessage({...request(), timestamp: NOW})}));
+		const header = `${NOW}:${signed.r.slice(2)}${signed.s.slice(2)}:${signed.yParity}`;
+		expect(recoverRequestSigner({...request(), signature: header}, {now: NOW})).toMatchObject({
+			ok: true,
+			publicKey: delegatePublicKey(privateKey),
+		});
 	});
 });
 

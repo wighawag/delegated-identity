@@ -14,9 +14,6 @@ importers:
       '@noble/secp256k1':
         specifier: ^2.2.3
         version: 2.3.0
-      viem:
-        specifier: ^2.23.13
-        version: 2.57.20(typescript@5.9.3)
     devDependencies:
       prettier:
         specifier: ^3.5.3
@@ -24,6 +21,9 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
+      viem:
+        specifier: ^2.23.13
+        version: 2.57.20(typescript@5.9.3)
       vitest:
         specifier: ^3.0.9
         version: 3.2.7
