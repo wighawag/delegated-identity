@@ -7,7 +7,9 @@
 //
 // The derivation (HKDF-SHA256, the Ed25519 and X25519 public keys) always runs
 // in `@noble`: WebCrypto cannot import a raw private seed, and it runs once, at
-// sign-in. Not exported from the package: tests reach it to force a backend.
+// sign-in. Its Ed25519 and SHA-256 are exported through the
+// `delegated-identity/ed25519` subpath (src/ed25519.ts); the backend switch is
+// not exported: tests reach it to force a backend.
 
 import {ed25519, x25519} from '@noble/curves/ed25519';
 import {hkdf} from '@noble/hashes/hkdf';
@@ -67,6 +69,7 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
 	return a.length === b.length && a.every((byte, i) => byte === b[i]);
 }
 
+/** SHA-256 of `bytes`, through WebCrypto when the backend is WebCrypto. */
 export async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
 	const webCrypto = subtle();
 	if (webCrypto && (await cryptoBackend()) === 'webcrypto') {
@@ -80,6 +83,7 @@ export function hkdfSha256(ikm: Uint8Array, info: string, length: number): Uint8
 	return hkdf(nobleSha256, ikm, new Uint8Array(0), info, length);
 }
 
+/** The Ed25519 public key (32 bytes) of a 32-byte seed. */
 export function ed25519PublicKey(seed: Uint8Array): Uint8Array {
 	return ed25519.getPublicKey(seed);
 }

@@ -96,6 +96,15 @@ On a server that keeps a key directory, the ownership proof once at registration
 
 Ed25519 and SHA-256 run through WebCrypto where the runtime has them (Chrome 137+, Firefox 129+, Safari 17+, Node, Cloudflare Workers, Bun), and through `@noble/curves` / `@noble/hashes` otherwise (older browsers, and plain-http origins, which have no `crypto.subtle`). The derivation always runs in `@noble`, once at sign-in: WebCrypto cannot import a raw private seed. WebCrypto's Ed25519 rule cannot be configured and implementations differ on edge cases, so every verify first runs the same JS pre-checks (a canonical `S < L`, `A` and `R` canonical and not of small order): both paths accept the same signatures.
 
+A consumer that signs its own payloads with the key set's signing key (missiv's messages) uses the same module through the `delegated-identity/ed25519` subpath, so it accepts exactly the signatures the request verifiers accept:
+
+```ts
+import {ed25519PublicKey, ed25519Sign, ed25519Verify, sha256} from 'delegated-identity/ed25519';
+
+const signature = await ed25519Sign(payload, signingPrivateKeyBytes); // 64 bytes
+const ok = await ed25519Verify(signature, payload, signingPublicKeyBytes); // pre-checks, then verify
+```
+
 ## Dependencies
 
 `@noble/curves`, `@noble/hashes` and `@noble/secp256k1` (EIP-191 recovery of the ownership proof, the only secp256k1 and keccak left). An app or a library depending on this package does not pull in viem (its tests use viem as a dev dependency to cross-check the EIP-191 side).

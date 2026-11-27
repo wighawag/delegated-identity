@@ -25,6 +25,10 @@
 		".": {
 			"types": "./dist/esm/index.d.ts",
 			"default": "./dist/esm/index.js"
+		},
+		"./ed25519": {
+			"types": "./dist/esm/ed25519.d.ts",
+			"default": "./dist/esm/ed25519.js"
 		}
 	},
 	"files": [

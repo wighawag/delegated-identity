@@ -10,6 +10,7 @@
 - **The verifiers**: `verifyRequest` takes `keySet` instead of recovering a key; `verifyRequestSignature` (the request against a registered key) and `parseRequestSignature` (the header's claimed key) replace `recoverRequestSigner`.
 - **Removed**: `delegatePublicKey`, `recoverRequestSigner`, the `PublicKey` type.
 - **Crypto**: WebCrypto Ed25519 / SHA-256 where available, `@noble/curves` / `@noble/hashes` otherwise, with the same JS pre-checks before every Ed25519 verify. `requestMessage` and `keySetRef` are now async. New dependency: `@noble/curves`.
+- **The `delegated-identity/ed25519` subpath** exports that module's `ed25519Sign`, `ed25519Verify` (with the pre-checks), `ed25519PublicKey` and `sha256`, for consumers that sign their own payloads with the signing key (missiv's messages).
 
 Upgrade in this order:
 
