@@ -1,13 +1,15 @@
 {
 	"name": "delegated-identity",
-	"version": "0.1.1",
-	"description": "A wallet-delegated key and its proofs: the wallet authorizes a key for an app origin once, the key signs each request (server origin, route, time, body)",
+	"version": "0.2.0",
+	"description": "A wallet-delegated key set and its proofs: the wallet authorizes an Ed25519 signing key and an X25519 encryption key for an app origin once, the signing key signs each request (server origin, route, time, body)",
 	"keywords": [
 		"ethereum",
 		"delegate",
 		"signature",
 		"authentication",
-		"eip-191"
+		"eip-191",
+		"ed25519",
+		"x25519"
 	],
 	"author": "Ronan Sandford",
 	"license": "MIT",
@@ -30,7 +32,8 @@
 		"src"
 	],
 	"dependencies": {
-		"@noble/hashes": "^1.7.1",
+		"@noble/curves": "^1.9.7",
+		"@noble/hashes": "^1.8.0",
 		"@noble/secp256k1": "^2.2.3"
 	},
 	"devDependencies": {
